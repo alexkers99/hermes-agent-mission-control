@@ -28,7 +28,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/api/auth/signin", // Default NextAuth sign-in page
     error: "/api/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET,

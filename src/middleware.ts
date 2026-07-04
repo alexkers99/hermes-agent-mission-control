@@ -7,13 +7,20 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET 
   });
 
-  const authRoutes = ["/api/auth"];
-  const isAuthRoute = authRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+  const { pathname } = request.nextUrl;
 
-  if (!token && !isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/api/auth/signin";
-    return NextResponse.redirect(url);
+  if (token) {
+    // If user is logged in and tries to go to login page, send them to dashboard
+    if (pathname.startsWith("/api/auth/signin")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  } else {
+    // If user is NOT logged in, protect everything EXCEPT auth routes
+    if (!pathname.startsWith("/api/auth")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/api/auth/signin";
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();
