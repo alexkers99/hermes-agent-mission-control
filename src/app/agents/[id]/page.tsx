@@ -3,7 +3,7 @@ import { getCostBreakdown } from "@/lib/cost";
 import { CostChart } from "@/components/charts/cost-chart";
 import { ModelCostBar } from "@/components/charts/model-cost-bar";
 import Link from "next/link";
-import { ArrowLeft, Activity, DollarSign, ListTodo, Clock, LineChart, Cpu } from "lucide-react";
+import { ArrowLeft, Activity, DollarSign, ListTodo, Clock, LineChart, Cpu, Power, PlayCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ function statusClass(s: string) {
 }
 
 function statusLabel(s: string) {
-  const m: Record<string, string> = { online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline" };
+  const m: Record<string, string> = { online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline", stopped: "Stopped" };
   return m[s] || s;
 }
 
@@ -50,7 +50,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
 
   if (!agent) {
     return (
-      <div className="p-6 max-w-[900px]" style={{ margin: "0 auto" }}>
+      <div className="p-4 sm:p-6 max-w-[900px]" style={{ margin: "0 auto" }}>
         <Link href="/agents" className="inline-flex items-center gap-1.5 text-[12px] font-[510] mb-5" style={{ color: "var(--ink-3)" }}>
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </Link>
@@ -69,7 +69,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
     : [];
 
   return (
-    <div className="p-6 max-w-[900px]" style={{ margin: "0 auto" }}>
+    <div className="p-4 sm:p-6 max-w-[900px]" style={{ margin: "0 auto" }}>
       <Link href="/agents" className="inline-flex items-center gap-1.5 text-[12px] font-[510] mb-5" style={{ color: "var(--ink-3)" }}>
         <ArrowLeft className="w-3.5 h-3.5" /> Back to agents
       </Link>
@@ -78,12 +78,30 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
       <div className="flex items-start gap-4 mb-6">
         <div className="text-[40px] leading-none">{agent.emoji || "🤖"}</div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>{agent.name}</h1>
             <span className={`telemetry-badge ${statusClass(agent.status)}`}>
               <div className={`telemetry-dot ${statusClass(agent.status)}`} style={{ width: 5, height: 5 }} />
               {statusLabel(agent.status)}
             </span>
+            <form action="/api/agents/state" method="POST" className="sm:ml-auto">
+              <input type="hidden" name="id" value={agent.id} />
+              {agent.status === "stopped" ? (
+                <>
+                  <input type="hidden" name="action" value="resume" />
+                  <button type="submit" className="btn-ghost text-[11px] px-3 flex items-center gap-1.5" style={{ color: "var(--green)" }}>
+                    <PlayCircle className="w-3.5 h-3.5" /> Resume agent
+                  </button>
+                </>
+              ) : (
+                <>
+                  <input type="hidden" name="action" value="stop" />
+                  <button type="submit" className="btn-ghost text-[11px] px-3 flex items-center gap-1.5" style={{ color: "var(--red)" }}>
+                    <Power className="w-3.5 h-3.5" /> Stop agent
+                  </button>
+                </>
+              )}
+            </form>
           </div>
           {agent.role && <div className="text-[13px] mt-0.5" style={{ color: "var(--ink-3)" }}>{agent.role}</div>}
           {agent.currentTask && (
@@ -96,7 +114,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <Stat icon={ListTodo} label="Tasks" value={String(agent.tasksCompleted)} />
         <Stat icon={DollarSign} label="Cost" value={`$${(agent.totalCost || 0).toFixed(2)}`} />
         <Stat icon={Clock} label="Last active" value={timeAgo(agent.lastActive)} />

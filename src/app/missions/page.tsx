@@ -38,14 +38,14 @@ export default async function MissionsPage() {
   const failedCount = columns.failed.length;
 
   return (
-    <div className="p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
-      <div className="flex items-center gap-4 mb-5">
+    <div className="p-4 sm:p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-5">
         <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Missions</h1>
         <span className="badge badge-neutral">{total} total</span>
         {failedCount > 0 && <span className="badge badge-red">{failedCount} failed</span>}
       </div>
 
-      <div className="grid grid-cols-4 gap-3" style={{ minHeight: "calc(100vh - 160px)" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {Object.entries(STATUS_CONFIG).map(([status, config]) => {
           const items = columns[status] || [];
           return (

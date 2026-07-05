@@ -113,7 +113,7 @@ export default async function TimelinePage() {
   const agentNames = agents.map((a) => a.name);
 
   return (
-    <div className="p-6 max-w-[1200px]" style={{ margin: "0 auto" }}>
+    <div className="p-4 sm:p-6 max-w-[1200px]" style={{ margin: "0 auto" }}>
       {/* Header */}
       <div className="mb-5">
         <div className="flex items-center justify-between">

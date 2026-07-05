@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/app-shell";
 
 const geist = Geist({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -27,10 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         className={`${geist.className} ${geistMono.variable} min-h-screen scan-effect`}
         style={{ background: "var(--bg)", color: "var(--ink)" }}
       >
-        <div className="flex">
-          <Sidebar agents={agents} />
-          <main className="flex-1 min-h-screen">{children}</main>
-        </div>
+        <AppShell agents={agents}>{children}</AppShell>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
  * Agent state endpoint.
  *
  *   GET  /api/agents/state              -> list all agents
- *   POST /api/agents/state              -> upsert one agent's state
+ *   POST /api/agents/state              -> upsert one agent's state (agents, bearer-auth)
+ *   POST /api/agents/state (form)       -> operator stop/resume control (dashboard, session-auth via middleware)
  *
  * Hermes agents call POST here every N seconds with their current status.
  * Auth: requires `Authorization: Bearer <INTERNAL_API_SECRET>` header so
@@ -27,6 +29,27 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") || "";
+
+  // Operator control from the dashboard: stop/resume an agent as a kill switch.
+  // Reaches here only with a valid NextAuth session cookie (enforced by middleware).
+  if (!contentType.includes("application/json")) {
+    const form = await req.formData();
+    const id = form.get("id") as string;
+    const action = form.get("action") as string;
+    if (!id || (action !== "stop" && action !== "resume")) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+    await prisma.agentState.update({
+      where: { id },
+      data: { status: action === "stop" ? "stopped" : "idle" },
+    });
+    revalidatePath("/");
+    revalidatePath("/agents");
+    revalidatePath(`/agents/${id}`);
+    return NextResponse.redirect(new URL(`/agents/${encodeURIComponent(id)}`, req.url));
+  }
+
   if (!checkAuth(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

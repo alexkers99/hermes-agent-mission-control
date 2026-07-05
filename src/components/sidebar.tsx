@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, ListTodo, Lightbulb, Calendar, ChevronDown, Activity, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Bot, ListTodo, Lightbulb, Calendar, ChevronDown, Activity, BarChart3, X } from "lucide-react";
 import { useState } from "react";
 
 const NAV = [
@@ -23,7 +23,15 @@ interface AgentMini {
   totalCost: number;
 }
 
-export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
+export function Sidebar({
+  agents = [],
+  mobileOpen = false,
+  onClose,
+}: {
+  agents?: AgentMini[];
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const [agentsOpen, setAgentsOpen] = useState(true);
 
@@ -32,8 +40,10 @@ export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
 
   return (
     <aside
-      className="flex flex-col gap-0 sticky top-0 h-screen"
-      style={{ width: 220, borderRight: "1px solid var(--line)" }}
+      className={`flex flex-col gap-0 fixed lg:sticky top-0 left-0 z-50 h-screen transition-transform duration-200 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      } lg:translate-x-0`}
+      style={{ width: 220, borderRight: "1px solid var(--line)", background: "var(--bg)" }}
     >
       {/* Brand */}
       <div
@@ -41,12 +51,12 @@ export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
         style={{ borderBottom: "1px solid var(--line)" }}
       >
         <div
-          className="w-6 h-6 rounded flex items-center justify-center text-[11px] font-[600]"
+          className="w-6 h-6 rounded flex items-center justify-center text-[11px] font-[600] flex-none"
           style={{ background: "var(--accent)", color: "#fff" }}
         >
           H
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-[13px] font-[510] leading-tight" style={{ color: "var(--ink)" }}>
             Mission Control
           </div>
@@ -54,6 +64,9 @@ export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
             Hermes Agent OS
           </div>
         </div>
+        <button onClick={onClose} className="lg:hidden flex-none" style={{ color: "var(--ink-3)" }} aria-label="Close menu">
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Quick stats */}
@@ -83,6 +96,7 @@ export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[12.5px] font-[510]"
               style={{
                 background: active ? "var(--surface-1)" : "transparent",
@@ -115,6 +129,7 @@ export function Sidebar({ agents = [] }: { agents?: AgentMini[] }) {
                   <Link
                     key={a.id}
                     href={`/agents/${encodeURIComponent(a.id)}`}
+                    onClick={onClose}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px]"
                     style={{ color: "var(--ink-3)" }}
                   >

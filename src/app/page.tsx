@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCostBreakdown } from "@/lib/cost";
 import Link from "next/link";
 import {
   Bot, ListTodo, Lightbulb, Activity, AlertTriangle,
@@ -6,6 +7,8 @@ import {
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const SPEND_THRESHOLD_USD = Number(process.env.SPEND_THRESHOLD_USD) || 75;
 
 /* ── Utilities ─────────────────────────────────── */
 
@@ -28,7 +31,7 @@ function statusClass(s: string) {
 
 function statusLabel(s: string) {
   const m: Record<string, string> = {
-    online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline",
+    online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline", stopped: "Stopped",
   };
   return m[s] || s;
 }
@@ -37,10 +40,11 @@ function statusLabel(s: string) {
 
 async function getData() {
   try {
-    const [agents, pendingMissions, pendingIdeas] = await Promise.all([
+    const [agents, pendingMissions, pendingIdeas, spend24h] = await Promise.all([
       prisma.agentState.findMany({ orderBy: { updatedAt: "desc" } }),
       prisma.mission.count({ where: { status: "pending" } }),
       prisma.idea.findMany({ orderBy: { timestamp: "desc" }, take: 5 }),
+      getCostBreakdown({ range: "24h" }),
     ]);
     const online = agents.filter((a) => a.status === "online" || a.status === "working").length;
     const errors = agents.filter((a) => a.status === "error").length;
@@ -63,9 +67,9 @@ async function getData() {
     }
     activity.sort((a, b) => b.ts.getTime() - a.ts.getTime());
 
-    return { agents, online, errors, total: agents.length, totalCost, totalTasks, pendingMissions, pendingIdeas: pendingIdeas, activity: activity.slice(0, 15) };
+    return { agents, online, errors, total: agents.length, totalCost, totalTasks, pendingMissions, pendingIdeas: pendingIdeas, activity: activity.slice(0, 15), spend24h: Number(spend24h.totalUsd) };
   } catch {
-    return { agents: [], online: 0, errors: 0, total: 0, totalCost: 0, totalTasks: 0, pendingMissions: 0, pendingIdeas: [], activity: [] };
+    return { agents: [], online: 0, errors: 0, total: 0, totalCost: 0, totalTasks: 0, pendingMissions: 0, pendingIdeas: [], activity: [], spend24h: 0 };
   }
 }
 
@@ -75,11 +79,12 @@ export default async function HomePage() {
   const s = await getData();
   const empty = s.total === 0;
   const hasError = s.errors > 0;
+  const spendAlert = s.spend24h > SPEND_THRESHOLD_USD;
 
   return (
     <>
       {/* ============ TELEMETRY STRIP ============ */}
-      <div className="telemetry-strip px-6 py-2.5 flex items-center gap-6 text-[12px]">
+      <div className="telemetry-strip px-4 sm:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px]">
         <TelemetryItem icon={<Bot className="w-3.5 h-3.5" />} label="AGENTS" value={`${s.online}/${s.total}`} status="green" />
         <TelemetryItem icon={<Zap className="w-3.5 h-3.5" />} label="TASKS" value={String(s.totalTasks)} />
         <TelemetryItem icon={<DollarSign className="w-3.5 h-3.5" />} label="COST" value={`$${s.totalCost.toFixed(2)}`} />
@@ -95,7 +100,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
+      <div className="p-4 sm:p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
         {/* ============ EMPTY STATE ============ */}
         {empty && (
           <div className="telemetry-card p-6 mb-6 text-center animate-fade-in-up">
@@ -106,6 +111,26 @@ export default async function HomePage() {
               Run <code className="px-1.5 py-0.5 rounded text-[12px]" style={{ background: "var(--surface-1)", color: "var(--accent)" }}>npm run seed:demo</code>{" "}
               or connect Hermes agents via <code className="px-1.5 py-0.5 rounded text-[12px]" style={{ background: "var(--surface-1)" }}>POST /api/agents/state</code>.
             </div>
+          </div>
+        )}
+
+        {/* ============ SPEND ALERT ============ */}
+        {spendAlert && (
+          <div
+            className="mb-4 px-5 py-3 rounded-lg flex items-center gap-3 animate-fade-in-up"
+            style={{ background: "var(--red-subtle)", border: "1px solid rgba(239,68,68,0.25)" }}
+          >
+            <DollarSign className="w-4 h-4 flex-none" style={{ color: "var(--red)" }} />
+            <span className="text-[13px] font-[510]" style={{ color: "#fca5a5" }}>
+              24h spend is ${s.spend24h.toFixed(2)}, over the ${SPEND_THRESHOLD_USD.toFixed(0)} threshold.
+            </span>
+            <Link
+              href="/analytics"
+              className="ml-auto text-[12px] font-[510] flex items-center gap-1"
+              style={{ color: "var(--ink-3)" }}
+            >
+              Review spend <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         )}
 
@@ -130,10 +155,10 @@ export default async function HomePage() {
         )}
 
         {/* ============ MAIN GRID ============ */}
-        <div className="grid grid-cols-4 gap-4" style={{ minHeight: "calc(100vh - 140px)" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
           {/* ─── LEFT: Activity + Agent Grid ─── */}
-          <div className="col-span-3 flex flex-col gap-4">
+          <div className="lg:col-span-3 flex flex-col gap-4">
 
             {/* Activity Feed */}
             <SectionHeader icon={Zap} title="RECENT ACTIVITY" />
@@ -183,7 +208,7 @@ export default async function HomePage() {
           </div>
 
           {/* ─── RIGHT: Signals + Health ─── */}
-          <div className="col-span-1 flex flex-col gap-4">
+          <div className="lg:col-span-1 flex flex-col gap-4">
 
             {/* Signals Intelligence */}
             <SectionHeader icon={TrendingUp} title="SIGNALS" />

@@ -78,8 +78,8 @@ export default async function AnalyticsPage({
   }
 
   return (
-    <div className="p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
-      <div className="mb-5 flex items-end justify-between">
+    <div className="p-4 sm:p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Analytics</h1>
           <p className="text-[12px] mt-1" style={{ color: "var(--ink-3)" }}>
@@ -105,7 +105,7 @@ export default async function AnalyticsPage({
       </div>
 
       {/* ── Metric cards ─────────────────────── */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <MetricCard icon={LineChart} label={`Cost ${range.toUpperCase()}`} value={`$${rangeCost.toFixed(2)}`} sub={`${fmtTok(totalIn)} in / ${fmtTok(totalOut)} out tokens`} />
         <MetricCard icon={DollarSign} label="Cost All-Time" value={`$${totalCost.toFixed(2)}`} sub={`avg $${avgCost.toFixed(2)}/agent`} />
         <MetricCard icon={Activity} label="Tasks Done" value={String(totalTasks)} sub={`avg ${avgTasks.toFixed(1)}/agent`} />
@@ -113,7 +113,7 @@ export default async function AnalyticsPage({
       </div>
 
       {/* ── Cost over time + per-model ──────── */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <div className="telemetry-card p-5">
           <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-4 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
             <LineChart className="w-3 h-3" /> Cost Over Time ({range})
@@ -129,7 +129,7 @@ export default async function AnalyticsPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* ── Cost by Agent (tracked) ────────── */}
         <div className="telemetry-card p-5">
           <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-4 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>

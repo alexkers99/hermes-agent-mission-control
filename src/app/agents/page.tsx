@@ -22,7 +22,7 @@ function statusClass(s: string) {
 
 function statusLabel(s: string) {
   const m: Record<string, string> = {
-    online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline",
+    online: "Active", working: "Working", idle: "Idle", error: "Error", offline: "Offline", stopped: "Stopped",
   };
   return m[s] || s;
 }
@@ -37,7 +37,7 @@ export default async function AgentsPage() {
   const activeCount = agents.filter((a) => a.status === "working" || a.status === "online").length;
 
   return (
-    <div className="p-6 max-w-[1200px]" style={{ margin: "0 auto" }}>
+    <div className="p-4 sm:p-6 max-w-[1200px]" style={{ margin: "0 auto" }}>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-[22px] font-[510] tracking-[-0.01em]" style={{ color: "var(--ink)" }}>
@@ -62,7 +62,7 @@ export default async function AgentsPage() {
           </div>
         </div>
       ) : (
-        <div className="telemetry-card overflow-hidden">
+        <div className="telemetry-card overflow-x-auto">
           <table className="table-base">
             <thead>
               <tr>

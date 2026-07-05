@@ -33,13 +33,13 @@ export default async function CalendarPage() {
   const activeMissionCount = missions.filter((m) => m.status === "active").length;
 
   return (
-    <div className="p-6 max-w-[1000px]" style={{ margin: "0 auto" }}>
+    <div className="p-4 sm:p-6 max-w-[1000px]" style={{ margin: "0 auto" }}>
       <div className="mb-5">
         <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Schedule</h1>
         <p className="text-[12px] mt-1" style={{ color: "var(--ink-3)" }}>Upcoming work and automated cron runs</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="telemetry-card p-4 flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-[510]" style={{ color: "var(--ink-4)" }}>
             <ListTodo className="w-3 h-3" /> Pending
