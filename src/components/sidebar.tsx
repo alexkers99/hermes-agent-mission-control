@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, ListTodo, Lightbulb, Calendar, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Bot, ListTodo, Lightbulb, Calendar, ChevronDown, Activity, BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 const NAV = [
   { href: "/", label: "Command Center", icon: LayoutDashboard },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/missions", label: "Missions", icon: ListTodo },
+  { href: "/timeline", label: "Timeline", icon: Activity },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/ideas", label: "Signals", icon: Lightbulb },
   { href: "/calendar", label: "Schedule", icon: Calendar },
 ];

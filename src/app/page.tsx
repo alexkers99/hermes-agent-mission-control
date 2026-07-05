@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
   Bot, ListTodo, Lightbulb, Activity, AlertTriangle,
-  TrendingUp, Zap, DollarSign, ArrowRight, Clock, Server
+  TrendingUp, Zap, DollarSign, ArrowRight, Clock, Server, Plus
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -224,6 +224,47 @@ export default async function HomePage() {
                   Growth Scout signals appear here.
                 </div>
               )}
+            </div>
+
+            {/* Dispatch Mission */}
+            <SectionHeader icon={Plus} title="DISPATCH" />
+            <div className="telemetry-card p-3">
+              <form action="/api/missions" method="POST" className="flex flex-col gap-2">
+                <input
+                  name="title"
+                  placeholder="New mission..."
+                  className="w-full px-3 py-2 rounded-md text-[12px] outline-none"
+                  style={{ background: "var(--surface-0)", border: "1px solid var(--line-subtle)", color: "var(--ink)" }}
+                />
+                <div className="flex gap-2">
+                  <select
+                    name="agentId"
+                    className="flex-1 px-2.5 py-1.5 rounded-md text-[11px] outline-none"
+                    style={{ background: "var(--surface-0)", border: "1px solid var(--line-subtle)", color: "var(--ink-2)" }}
+                  >
+                    <option value="">Any agent</option>
+                    {s.agents.map((a) => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    name="priority"
+                    className="px-2.5 py-1.5 rounded-md text-[11px] outline-none"
+                    style={{ background: "var(--surface-0)", border: "1px solid var(--line-subtle)", color: "var(--ink-2)" }}
+                  >
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded-md text-[11px] font-[510]"
+                    style={{ background: "var(--accent)", color: "#fff" }}
+                  >
+                    Go
+                  </button>
+                </div>
+              </form>
             </div>
 
             {/* System Health */}

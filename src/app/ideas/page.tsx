@@ -12,7 +12,7 @@ function timeAgo(d: Date) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const CAT = {
+const CAT: Record<string, string> = {
   trend: "badge-blue",
   growth: "badge-green",
   content: "badge-indigo",
@@ -20,11 +20,6 @@ const CAT = {
   competitor: "badge-red",
   strategy: "badge-amber",
 };
-
-async function updateStatus(id: string, status: string) {
-  "use server";
-  await prisma.idea.update({ where: { id }, data: { status } });
-}
 
 export default async function IdeasPage() {
   let ideas: any[] = [];
@@ -49,7 +44,7 @@ export default async function IdeasPage() {
         <div className="telemetry-card p-8 text-center">
           <div className="text-[14px] font-[510] mb-2" style={{ color: "var(--ink-2)" }}>No signals yet.</div>
           <div className="text-[12px]" style={{ color: "var(--ink-3)" }}>
-            Your Growth Scout will drop signals here when it detects trends worth your attention.
+            Growth Scout signals appear here.
           </div>
         </div>
       ) : (
@@ -72,7 +67,7 @@ export default async function IdeasPage() {
 
               <div className="flex items-center gap-2 flex-wrap">
                 {idea.category && (
-                  <span className={`badge ${CAT[idea.category.toLowerCase() as keyof typeof CAT] || "badge-neutral"}`}>
+                  <span className={`badge ${CAT[idea.category.toLowerCase()] || "badge-neutral"}`}>
                     {idea.category}
                   </span>
                 )}
@@ -84,14 +79,17 @@ export default async function IdeasPage() {
                 </span>
               </div>
 
-              {/* Approve / Reject actions */}
               <div className="flex items-center gap-2 pt-1" style={{ borderTop: "1px solid var(--line-subtle)" }}>
-                <form action={async () => { "use server"; await updateStatus(idea.id, "approved"); }}>
+                <form action="/api/ideas" method="POST">
+                  <input type="hidden" name="id" value={idea.id} />
+                  <input type="hidden" name="status" value="approved" />
                   <button type="submit" className="btn-ghost text-[11px] px-3" style={{ color: "var(--green)" }}>
                     Approve
                   </button>
                 </form>
-                <form action={async () => { "use server"; await updateStatus(idea.id, "rejected"); }}>
+                <form action="/api/ideas" method="POST">
+                  <input type="hidden" name="id" value={idea.id} />
+                  <input type="hidden" name="status" value="rejected" />
                   <button type="submit" className="btn-ghost text-[11px] px-3" style={{ color: "var(--red)" }}>
                     Reject
                   </button>
