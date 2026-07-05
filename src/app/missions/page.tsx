@@ -12,95 +12,93 @@ function timeAgo(d: Date) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function priorityBadge(p: string) {
-  const map: Record<string, { label: string; cls: string }> = {
-    high: { label: "High", cls: "badge-red" },
-    medium: { label: "Medium", cls: "badge-amber" },
-    low: { label: "Low", cls: "badge-neutral" },
-  };
-  const m = map[p] || { label: p, cls: "badge-neutral" };
-  return <span className={`badge ${m.cls}`}>{m.label}</span>;
-}
+const STATUS_CONFIG: Record<string, { label: string; limit: number }> = {
+  pending: { label: "Pending", limit: 8 },
+  active: { label: "Active", limit: 8 },
+  completed: { label: "Completed", limit: 8 },
+  failed: { label: "Failed", limit: 8 },
+};
 
-function statusBadge(s: string) {
-  const map: Record<string, { label: string; cls: string }> = {
-    pending: { label: "Pending", cls: "badge-neutral" },
-    active: { label: "Active", cls: "badge-blue" },
-    completed: { label: "Completed", cls: "badge-green" },
-    failed: { label: "Failed", cls: "badge-red" },
-  };
-  const m = map[s] || { label: s, cls: "badge-neutral" };
-  return <span className={`badge ${m.cls}`}>{m.label}</span>;
-}
+const PRIORITY_COLORS: Record<string, string> = {
+  high: "var(--red)", medium: "var(--amber)", low: "var(--ink-4)",
+};
 
 export default async function MissionsPage() {
   let missions: any[] = [];
   try {
-    missions = await prisma.mission.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
+    missions = await prisma.mission.findMany({ orderBy: { createdAt: "desc" }, take: 32 });
   } catch {}
 
-  const pendingCount = missions.filter((m) => m.status === "pending").length;
-  const activeCount = missions.filter((m) => m.status === "active").length;
-  const failedCount = missions.filter((m) => m.status === "failed").length;
+  const columns: Record<string, any[]> = { pending: [], active: [], completed: [], failed: [] };
+  for (const m of missions) {
+    if (columns[m.status]) columns[m.status].push(m);
+  }
+
+  const total = missions.length;
+  const failedCount = columns.failed.length;
 
   return (
-    <div className="p-8 max-w-[1000px]" style={{ margin: "0 auto" }}>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[28px] font-[510] tracking-[-0.02em]" style={{ color: "var(--ink)" }}>
-          Missions
-        </h1>
-        <p className="text-[14px] mt-1" style={{ color: "var(--ink-3)" }}>
-          {missions.length} mission{missions.length !== 1 ? "s" : ""} total
-          {pendingCount > 0 && ` · ${pendingCount} pending`}
-          {activeCount > 0 && ` · ${activeCount} active`}
-          {failedCount > 0 && (
-            <span style={{ color: "var(--red)" }}>{` · ${failedCount} failed`}</span>
-          )}
-        </p>
+    <div className="p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
+      <div className="flex items-center gap-4 mb-5">
+        <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Missions</h1>
+        <span className="badge badge-neutral">{total} total</span>
+        {failedCount > 0 && <span className="badge badge-red">{failedCount} failed</span>}
       </div>
 
-      {missions.length === 0 ? (
-        <div className="card p-8 text-center">
-          <div className="text-[14px] font-[510] mb-1" style={{ color: "var(--ink-2)" }}>
-            No missions yet.
-          </div>
-          <div className="text-[13px]" style={{ color: "var(--ink-3)" }}>
-            Your agents will pick up missions automatically once assigned.
-          </div>
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="table-base">
-            <thead>
-              <tr>
-                <th style={{ width: "50%" }}>Title</th>
-                <th style={{ width: "12%" }}>Status</th>
-                <th style={{ width: "10%" }}>Priority</th>
-                <th style={{ width: "15%" }}>Agent</th>
-                <th style={{ width: "13%" }}>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {missions.map((m) => (
-                <tr key={m.id}>
-                  <td>
-                    <div className="font-[510] truncate-text max-w-[420px]" style={{ color: "var(--ink)" }}>
+      <div className="grid grid-cols-4 gap-3" style={{ minHeight: "calc(100vh - 160px)" }}>
+        {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+          const items = columns[status] || [];
+          return (
+            <div key={status} className="kanban-col flex flex-col">
+              {/* Column header */}
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{
+                    background: status === "pending" ? "var(--ink-4)" :
+                                status === "active" ? "var(--blue)" :
+                                status === "completed" ? "var(--green)" : "var(--red)"
+                  }} />
+                  <span className="text-[12px] font-[510]" style={{ color: "var(--ink-2)" }}>
+                    {config.label}
+                  </span>
+                </div>
+                <span className="text-[10px] font-[510]" style={{ color: "var(--ink-4)" }}>
+                  {items.length}
+                </span>
+              </div>
+
+              {/* Cards */}
+              <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
+                {items.slice(0, config.limit).map((m) => (
+                  <div
+                    key={m.id}
+                    className="telemetry-card p-3 flex flex-col gap-1.5"
+                  >
+                    <div className="text-[12px] font-[510] leading-snug" style={{ color: "var(--ink)" }}>
                       {m.title}
                     </div>
-                  </td>
-                  <td>{statusBadge(m.status)}</td>
-                  <td>{priorityBadge(m.priority)}</td>
-                  <td style={{ color: "var(--ink-3)" }}>{m.agentId}</td>
-                  <td style={{ color: "var(--ink-4)", fontSize: 12 }}>
-                    {timeAgo(m.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{m.agentId}</span>
+                      <span className="text-[10px] flex items-center gap-1" style={{ color: PRIORITY_COLORS[m.priority] || "var(--ink-4)" }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: PRIORITY_COLORS[m.priority] || "var(--ink-4)" }} />
+                        {m.priority}
+                      </span>
+                    </div>
+                    <div className="text-[9px]" style={{ color: "var(--ink-4)" }}>
+                      {timeAgo(m.createdAt)}
+                    </div>
+                  </div>
+                ))}
+                {items.length === 0 && (
+                  <div className="p-4 text-center text-[11px]" style={{ color: "var(--ink-4)" }}>
+                    No missions
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

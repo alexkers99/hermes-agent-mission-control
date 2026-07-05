@@ -12,26 +12,18 @@ function timeAgo(d: Date) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function categoryBadge(cat: string | null) {
-  if (!cat) return null;
-  const map: Record<string, string> = {
-    trend: "badge-blue",
-    growth: "badge-green",
-    content: "badge-indigo",
-    product: "badge-amber",
-    strategy: "badge-neutral",
-    competitor: "badge-red",
-  };
-  return <span className={`badge ${map[cat.toLowerCase()] || "badge-neutral"}`}>{cat}</span>;
-}
+const CAT = {
+  trend: "badge-blue",
+  growth: "badge-green",
+  content: "badge-indigo",
+  product: "badge-purple",
+  competitor: "badge-red",
+  strategy: "badge-amber",
+};
 
-function statusBadge(status: string | null) {
-  const map: Record<string, string> = {
-    pending: "badge-neutral",
-    approved: "badge-green",
-    rejected: "badge-red",
-  };
-  return <span className={`badge ${map[status || "pending"] || "badge-neutral"}`}>{status || "pending"}</span>;
+async function updateStatus(id: string, status: string) {
+  "use server";
+  await prisma.idea.update({ where: { id }, data: { status } });
 }
 
 export default async function IdeasPage() {
@@ -40,57 +32,76 @@ export default async function IdeasPage() {
     ideas = await prisma.idea.findMany({ orderBy: { timestamp: "desc" }, take: 50 });
   } catch {}
 
+  const pending = ideas.filter((i) => i.status === "pending" || !i.status).length;
+  const approved = ideas.filter((i) => i.status === "approved").length;
+  const rejected = ideas.filter((i) => i.status === "rejected").length;
+
   return (
-    <div className="p-8 max-w-[1000px]" style={{ margin: "0 auto" }}>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[28px] font-[510] tracking-[-0.02em]" style={{ color: "var(--ink)" }}>
-          Ideas
-        </h1>
-        <p className="text-[14px] mt-1" style={{ color: "var(--ink-3)" }}>
-          {ideas.length} signal{ideas.length !== 1 ? "s" : ""} detected by your agents
-        </p>
+    <div className="p-6 max-w-[1200px]" style={{ margin: "0 auto" }}>
+      <div className="flex items-center gap-3 mb-5">
+        <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Signals</h1>
+        <span className="badge badge-amber">{pending} pending</span>
+        <span className="badge badge-green">{approved} approved</span>
+        {rejected > 0 && <span className="badge badge-red">{rejected} rejected</span>}
       </div>
 
       {ideas.length === 0 ? (
-        <div className="card p-8 text-center">
-          <div className="text-[14px] font-[510] mb-1" style={{ color: "var(--ink-2)" }}>
-            No ideas yet.
-          </div>
-          <div className="text-[13px]" style={{ color: "var(--ink-3)" }}>
-            Ideas appear here when your agents detect trends, growth opportunities, or content angles.
+        <div className="telemetry-card p-8 text-center">
+          <div className="text-[14px] font-[510] mb-2" style={{ color: "var(--ink-2)" }}>No signals yet.</div>
+          <div className="text-[12px]" style={{ color: "var(--ink-3)" }}>
+            Your Growth Scout will drop signals here when it detects trends worth your attention.
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {ideas.map((idea) => (
-            <div
-              key={idea.id}
-              className="card p-5 flex flex-col gap-3"
-            >
+            <div key={idea.id} className="telemetry-card p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-[510] leading-snug" style={{ color: "var(--ink)" }}>
+                  <div className="text-[13px] font-[510] leading-snug" style={{ color: "var(--ink)" }}>
                     {idea.title}
                   </div>
                   {idea.description && (
-                    <div className="text-[13px] mt-2 leading-relaxed" style={{ color: "var(--ink-2)" }}>
+                    <div className="text-[12px] mt-1.5 leading-relaxed" style={{ color: "var(--ink-2)" }}>
                       {idea.description}
                     </div>
                   )}
                 </div>
+                <StatusDot status={idea.status || "pending"} />
               </div>
+
               <div className="flex items-center gap-2 flex-wrap">
-                {categoryBadge(idea.category)}
-                {statusBadge(idea.status)}
-                {idea.source && (
-                  <span className="text-[11px]" style={{ color: "var(--ink-4)" }}>
-                    {idea.source}
+                {idea.category && (
+                  <span className={`badge ${CAT[idea.category.toLowerCase() as keyof typeof CAT] || "badge-neutral"}`}>
+                    {idea.category}
                   </span>
                 )}
-                <span className="text-[11px] ml-auto" style={{ color: "var(--ink-4)" }}>
+                {idea.source && (
+                  <span className="text-[10px]" style={{ color: "var(--ink-4)" }}>{idea.source}</span>
+                )}
+                <span className="text-[10px] ml-auto" style={{ color: "var(--ink-4)" }}>
                   {timeAgo(idea.timestamp)}
                 </span>
+              </div>
+
+              {/* Approve / Reject actions */}
+              <div className="flex items-center gap-2 pt-1" style={{ borderTop: "1px solid var(--line-subtle)" }}>
+                <form action={async () => { "use server"; await updateStatus(idea.id, "approved"); }}>
+                  <button type="submit" className="btn-ghost text-[11px] px-3" style={{ color: "var(--green)" }}>
+                    Approve
+                  </button>
+                </form>
+                <form action={async () => { "use server"; await updateStatus(idea.id, "rejected"); }}>
+                  <button type="submit" className="btn-ghost text-[11px] px-3" style={{ color: "var(--red)" }}>
+                    Reject
+                  </button>
+                </form>
+                {idea.status === "approved" && (
+                  <span className="badge badge-green ml-auto">Approved</span>
+                )}
+                {idea.status === "rejected" && (
+                  <span className="badge badge-red ml-auto">Rejected</span>
+                )}
               </div>
             </div>
           ))}
@@ -98,4 +109,9 @@ export default async function IdeasPage() {
       )}
     </div>
   );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const colors: Record<string, string> = { pending: "var(--ink-4)", approved: "var(--green)", rejected: "var(--red)" };
+  return <div className="w-2 h-2 rounded-full flex-none mt-1" style={{ background: colors[status] || "var(--ink-4)" }} />;
 }
