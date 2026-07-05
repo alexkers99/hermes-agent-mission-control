@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { getCostBreakdown } from "@/lib/cost";
+import { CostChart } from "@/components/charts/cost-chart";
+import { ModelCostBar } from "@/components/charts/model-cost-bar";
 import Link from "next/link";
-import { ArrowLeft, Activity, DollarSign, ListTodo, Clock } from "lucide-react";
+import { ArrowLeft, Activity, DollarSign, ListTodo, Clock, LineChart, Cpu } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +45,8 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
       ]);
     }
   } catch {}
+
+  const costs = agent ? await getCostBreakdown({ range: "7d", agentId: decoded, groupBy: "model" }) : null;
 
   if (!agent) {
     return (
@@ -96,6 +101,26 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
         <Stat icon={DollarSign} label="Cost" value={`$${(agent.totalCost || 0).toFixed(2)}`} />
         <Stat icon={Clock} label="Last active" value={timeAgo(agent.lastActive)} />
       </div>
+
+      {/* Cost history (7d) */}
+      {costs && (Number(costs.totalUsd) > 0 || costs.timeline.length > 0) && (
+        <div className="mb-6">
+          <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-3 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
+            <LineChart className="w-3 h-3" /> COST HISTORY (7D) - ${Number(costs.totalUsd).toFixed(2)}
+          </h2>
+          <div className="telemetry-card p-5">
+            <CostChart data={costs.timeline} />
+          </div>
+          {costs.series.length > 0 && (
+            <div className="telemetry-card p-5 mt-3">
+              <h3 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-3 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
+                <Cpu className="w-3 h-3" /> BY MODEL
+              </h3>
+              <ModelCostBar data={costs.series} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Activity Log */}
       <div className="mb-6">

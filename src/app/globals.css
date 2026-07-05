@@ -1,40 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  /* Deep space command center palette */
-  --bg: #08090a;
-  --bg-alt: #0c0d0f;
-  --panel: #0f1011;
-  --panel-hover: #161719;
-  --line-subtle: rgba(255, 255, 255, 0.04);
-  --line: rgba(255, 255, 255, 0.07);
-  --line-solid: #1e1f22;
+  /* Surface hierarchy (zinc-anchored, Solaris-calibrated) */
+  --bg: #09090b;
+  --bg-alt: #0c0c0e;
+  --panel: #101012;
+  --panel-hover: #18181b;
+  --panel-elevated: #27272a;
+  --panel-inset: #0c0c0e;
+  --line-subtle: rgba(255, 255, 255, 0.05);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-solid: #27272a;
 
   /* Text - telemetry grade */
-  --ink: #f0f1f3;
-  --ink-2: #c8ccd4;
-  --ink-3: #8b8f98;
-  --ink-4: #5c5f66;
+  --ink: #fafafa;
+  --ink-2: #d4d4d8;
+  --ink-3: #a1a1aa;
+  --ink-4: #71717a;
 
-  /* Brand - command blue */
-  --accent: #5e6ad2;
-  --accent-glow: rgba(94, 106, 210, 0.3);
-  --accent-subtle: rgba(94, 106, 210, 0.12);
+  /* Brand - indigo primary */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.3);
+  --accent-subtle: rgba(99, 102, 241, 0.12);
+  --violet: #8b5cf6;
 
   /* Telemetry status */
-  --green: #10b981;
-  --green-glow: rgba(16, 185, 129, 0.3);
-  --green-subtle: rgba(16, 185, 129, 0.1);
+  --green: #22c55e;
+  --green-glow: rgba(34, 197, 94, 0.3);
+  --green-subtle: rgba(34, 197, 94, 0.12);
   --amber: #f59e0b;
   --amber-glow: rgba(245, 158, 11, 0.25);
-  --amber-subtle: rgba(245, 158, 11, 0.1);
+  --amber-subtle: rgba(245, 158, 11, 0.12);
   --red: #ef4444;
   --red-glow: rgba(239, 68, 68, 0.3);
-  --red-subtle: rgba(239, 68, 68, 0.1);
-  --blue: #3b82f6;
-  --blue-subtle: rgba(59, 130, 246, 0.1);
-  --purple: #a78bfa;
-  --purple-subtle: rgba(167, 139, 250, 0.1);
+  --red-subtle: rgba(239, 68, 68, 0.12);
+  --blue: #38bdf8;
+  --blue-subtle: rgba(56, 189, 248, 0.12);
+  --purple: #8b5cf6;
+  --purple-subtle: rgba(139, 92, 246, 0.12);
+
+  /* Chart series (Recharts) - indigo-anchored, colorblind-safe */
+  --chart-1: #6366f1;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #38bdf8;
+  --chart-6: #f472b6;
 
   /* Surface opacities */
   --surface-0: rgba(255, 255, 255, 0.02);
@@ -44,6 +56,8 @@
   /* Shadows */
   --shadow-sm: 0px 1px 0px 0px rgba(0, 0, 0, 0.2);
   --shadow-md: 0px 2px 8px rgba(0, 0, 0, 0.3);
+
+  --radius: 0.625rem;
 }
 
 /* ============================================ */
@@ -161,8 +175,8 @@ html, body {
   font-weight: 510;
   letter-spacing: 0.02em;
 }
-.telemetry-badge.online { background: var(--green-subtle); color: #6ee7b7; }
-.telemetry-badge.working { background: var(--green-subtle); color: #6ee7b7; }
+.telemetry-badge.online { background: var(--green-subtle); color: #86efac; }
+.telemetry-badge.working { background: var(--green-subtle); color: #86efac; }
 .telemetry-badge.idle { background: var(--amber-subtle); color: #fcd34d; }
 .telemetry-badge.error { background: var(--red-subtle); color: #fca5a5; }
 .telemetry-badge.offline { background: var(--surface-1); color: var(--ink-4); }
@@ -182,10 +196,11 @@ html, body {
 
 /* Data display - monospaced metrics */
 .data-metric {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-geist-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Activity row animation */
@@ -274,7 +289,7 @@ html, body {
   cursor: pointer;
 }
 .btn-primary:hover {
-  background: #6a76e0;
+  background: var(--accent-hover);
   box-shadow: 0 0 12px var(--accent-glow);
 }
 
@@ -291,10 +306,10 @@ html, body {
   letter-spacing: 0.02em;
 }
 .badge-indigo { background: var(--accent-subtle); color: #a5b4fc; }
-.badge-green { background: var(--green-subtle); color: #6ee7b7; }
+.badge-green { background: var(--green-subtle); color: #86efac; }
 .badge-amber { background: var(--amber-subtle); color: #fcd34d; }
 .badge-red { background: var(--red-subtle); color: #fca5a5; }
-.badge-blue { background: var(--blue-subtle); color: #93c5fd; }
+.badge-blue { background: var(--blue-subtle); color: #7dd3fc; }
 .badge-purple { background: var(--purple-subtle); color: #c4b5fd; }
 .badge-neutral { background: var(--surface-1); color: var(--ink-3); }
 

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 
 const geist = Geist({ subsets: ["latin"] });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "Hermes Mission Control",
@@ -23,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geist.className} min-h-screen scan-effect`}
+        className={`${geist.className} ${geistMono.variable} min-h-screen scan-effect`}
         style={{ background: "var(--bg)", color: "var(--ink)" }}
       >
         <div className="flex">

@@ -1,12 +1,34 @@
 import { prisma } from "@/lib/prisma";
-import { DollarSign, Activity, TrendingUp, BarChart3, Bot, ListTodo } from "lucide-react";
+import { getCostBreakdown, CostRange } from "@/lib/cost";
+import { CostChart } from "@/components/charts/cost-chart";
+import { ModelCostBar } from "@/components/charts/model-cost-bar";
+import Link from "next/link";
+import { DollarSign, Activity, TrendingUp, ListTodo, Cpu, LineChart } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function AnalyticsPage() {
+const RANGES: { key: CostRange; label: string }[] = [
+  { key: "24h", label: "24H" },
+  { key: "7d", label: "7D" },
+  { key: "30d", label: "30D" },
+];
+
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const sp = await searchParams;
+  const range: CostRange = sp.range === "24h" || sp.range === "30d" ? sp.range : "7d";
+
   let agents: any[] = [];
   let missions: any[] = [];
   let ideas: any[] = [];
+
+  const [breakdown, byAgent] = await Promise.all([
+    getCostBreakdown({ range, groupBy: "model" }),
+    getCostBreakdown({ range, groupBy: "agent" }),
+  ]);
 
   try {
     [agents, missions, ideas] = await Promise.all([
@@ -25,10 +47,13 @@ export default async function AnalyticsPage() {
   const failedMissions = missions.filter((m) => m.status === "failed").length;
   const pendingMissions = missions.filter((m) => m.status === "pending").length;
 
+  const rangeCost = Number(breakdown.totalUsd);
+  const totalIn = breakdown.series.reduce((s, e) => s + e.inputTokens, 0);
+  const totalOut = breakdown.series.reduce((s, e) => s + e.outputTokens, 0);
+
   const maxCost = agents.length > 0 ? Math.max(...agents.map((a) => a.totalCost || 0)) : 1;
   const maxTasks = agents.length > 0 ? Math.max(...agents.map((a) => a.tasksCompleted || 0)) : 1;
 
-  // Mission status distribution
   const missionStats = [
     { label: "Pending", value: pendingMissions, color: "var(--ink-4)" },
     { label: "Active", value: activeMissions, color: "var(--blue)" },
@@ -36,7 +61,6 @@ export default async function AnalyticsPage() {
     { label: "Failed", value: failedMissions, color: "var(--red)" },
   ];
 
-  // Idea category distribution
   const catCount: Record<string, number> = {};
   for (const idea of ideas) {
     const c = idea.category || "uncategorized";
@@ -47,52 +71,97 @@ export default async function AnalyticsPage() {
   const avgCost = agents.length > 0 ? totalCost / agents.length : 0;
   const avgTasks = agents.length > 0 ? totalTasks / agents.length : 0;
 
+  function fmtTok(n: number) {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return String(n);
+  }
+
   return (
     <div className="p-6 max-w-[1400px]" style={{ margin: "0 auto" }}>
-      <div className="mb-5">
-        <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Analytics</h1>
-        <p className="text-[12px] mt-1" style={{ color: "var(--ink-3)" }}>
-          Performance metrics across {agents.length} agents
-        </p>
+      <div className="mb-5 flex items-end justify-between">
+        <div>
+          <h1 className="text-[22px] font-[510]" style={{ color: "var(--ink)" }}>Analytics</h1>
+          <p className="text-[12px] mt-1" style={{ color: "var(--ink-3)" }}>
+            Cost, tokens, and performance across {agents.length} agents
+          </p>
+        </div>
+        {/* Range toggle */}
+        <div className="flex gap-1 p-0.5 rounded-md" style={{ background: "var(--surface-1)", border: "1px solid var(--line-subtle)" }}>
+          {RANGES.map((r) => (
+            <Link
+              key={r.key}
+              href={`/analytics?range=${r.key}`}
+              className="px-3 py-1 rounded text-[11px] font-[510]"
+              style={{
+                background: r.key === range ? "var(--panel-elevated)" : "transparent",
+                color: r.key === range ? "var(--ink)" : "var(--ink-4)",
+              }}
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* ── Metric cards ─────────────────────── */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <MetricCard icon={DollarSign} label="Total Cost" value={`$${totalCost.toFixed(2)}`} sub={`avg $${avgCost.toFixed(2)}/agent`} />
+        <MetricCard icon={LineChart} label={`Cost ${range.toUpperCase()}`} value={`$${rangeCost.toFixed(2)}`} sub={`${fmtTok(totalIn)} in / ${fmtTok(totalOut)} out tokens`} />
+        <MetricCard icon={DollarSign} label="Cost All-Time" value={`$${totalCost.toFixed(2)}`} sub={`avg $${avgCost.toFixed(2)}/agent`} />
         <MetricCard icon={Activity} label="Tasks Done" value={String(totalTasks)} sub={`avg ${avgTasks.toFixed(1)}/agent`} />
-        <MetricCard icon={ListTodo} label="Missions" value={String(missions.length)} sub={`${activeMissions} active, ${pendingMissions} pending`} />
-        <MetricCard icon={TrendingUp} label="Completion" value={missions.length > 0 ? `${Math.round((completedMissions / missions.length) * 100)}%` : "0%"} sub={`${failedMissions} failed`} />
+        <MetricCard icon={TrendingUp} label="Completion" value={missions.length > 0 ? `${Math.round((completedMissions / missions.length) * 100)}%` : "0%"} sub={`${activeMissions} active, ${failedMissions} failed`} />
+      </div>
+
+      {/* ── Cost over time + per-model ──────── */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="telemetry-card p-5">
+          <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-4 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
+            <LineChart className="w-3 h-3" /> Cost Over Time ({range})
+          </h2>
+          <CostChart data={breakdown.timeline} />
+        </div>
+
+        <div className="telemetry-card p-5">
+          <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-4 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
+            <Cpu className="w-3 h-3" /> Cost by Model ({range})
+          </h2>
+          <ModelCostBar data={breakdown.series} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* ── Cost by Agent ──────────────────── */}
+        {/* ── Cost by Agent (tracked) ────────── */}
         <div className="telemetry-card p-5">
           <h2 className="text-[10px] font-[510] uppercase tracking-[0.06em] mb-4 flex items-center gap-1.5" style={{ color: "var(--ink-4)" }}>
-            <DollarSign className="w-3 h-3" /> Cost by Agent
+            <DollarSign className="w-3 h-3" /> Cost by Agent ({range})
           </h2>
-          <div className="flex flex-col gap-2.5">
-            {agents.map((a) => (
-              <div key={a.id} className="flex items-center gap-3">
-                <span className="text-[11px] w-24 truncate flex-none" style={{ color: "var(--ink-2)" }}>{a.name}</span>
-                <div className="flex-1 h-5 rounded-sm" style={{ background: "var(--surface-0)" }}>
-                  <div
-                    className="h-full rounded-sm transition-all"
-                    style={{
-                      width: `${(a.totalCost / maxCost) * 100}%`,
-                      background: "var(--accent)",
-                      minWidth: a.totalCost > 0 ? 2 : 0,
-                    }}
-                  />
+          {byAgent.series.length > 0 ? (
+            <ModelCostBar data={byAgent.series} />
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {agents.map((a) => (
+                <div key={a.id} className="flex items-center gap-3">
+                  <span className="text-[11px] w-24 truncate flex-none" style={{ color: "var(--ink-2)" }}>{a.name}</span>
+                  <div className="flex-1 h-5 rounded-sm" style={{ background: "var(--surface-0)" }}>
+                    <div
+                      className="h-full rounded-sm transition-all"
+                      style={{
+                        width: `${(a.totalCost / maxCost) * 100}%`,
+                        background: "var(--accent)",
+                        minWidth: a.totalCost > 0 ? 2 : 0,
+                      }}
+                    />
+                  </div>
+                  <span className="data-metric text-[11px] w-16 text-right flex-none" style={{ color: "var(--ink-3)" }}>
+                    ${(a.totalCost || 0).toFixed(2)}
+                  </span>
                 </div>
-                <span className="data-metric text-[11px] w-16 text-right flex-none" style={{ color: "var(--ink-3)" }}>
-                  ${(a.totalCost || 0).toFixed(2)}
-                </span>
-              </div>
-            ))}
-            {agents.length === 0 && (
-              <div className="text-[12px] py-4 text-center" style={{ color: "var(--ink-4)" }}>No agent data</div>
-            )}
-          </div>
+              ))}
+              {agents.length === 0 && (
+                <div className="text-[12px] py-4 text-center" style={{ color: "var(--ink-4)" }}>No agent data</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Tasks by Agent ─────────────────── */}
@@ -145,7 +214,6 @@ export default async function AnalyticsPage() {
                     />
                   ) : null
                 )}
-                {missions.length === 0 && <div style={{ width: "100%", background: "var(--surface-0)" }} />}
               </div>
               <div className="flex flex-col gap-1.5">
                 {missionStats.map((s) => (
@@ -207,7 +275,7 @@ function MetricCard({ icon: Icon, label, value, sub }: { icon: React.ComponentTy
         <Icon className="w-3 h-3" style={{ color: "var(--ink-3)" }} />
         {label}
       </div>
-      <div className="text-[22px] font-[510] tracking-[-0.01em]" style={{ color: "var(--ink)" }}>{value}</div>
+      <div className="text-[22px] font-[510] tracking-[-0.01em] data-metric" style={{ color: "var(--ink)", fontSize: 22 }}>{value}</div>
       <div className="text-[10px]" style={{ color: "var(--ink-4)" }}>{sub}</div>
     </div>
   );
